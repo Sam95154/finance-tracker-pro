@@ -16,7 +16,8 @@ def login():
     users = {
         "sameer": "sameer123",
         "admin": "admin123",
-        "guest": "guest123"
+        "guest": "guest123",
+        "fahad": "fahad123",
     }
 
     if username in users and users[username] == password:
