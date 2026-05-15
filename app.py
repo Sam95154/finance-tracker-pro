@@ -24,65 +24,71 @@ init_db()
 # ================= LOGIN =================
 logged_in = login()
 
-# ================= SAFE TEXT FUNCTION =================
+# ================= SAFE CLEAN FUNCTION =================
 def clean(text):
     return str(text).encode("ascii", "ignore").decode()
 
-# ================= PDF FUNCTION =================
+# ================= PDF GENERATOR (HDFC STYLE) =================
 def create_pdf(dataframe, username="User", budget=0):
 
     pdf = FPDF()
     pdf.add_page()
 
-    # HEADER
-    pdf.set_font("Arial", "B", 18)
-    pdf.cell(0, 10, "BANK STATEMENT REPORT", ln=True, align="C")
+    # ================= HEADER =================
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "HDFC STYLE BANK STATEMENT", ln=True, align="C")
 
     pdf.set_font("Arial", "", 11)
     pdf.cell(0, 8, clean(f"Account Holder: {username}"), ln=True, align="C")
     pdf.cell(0, 8, clean(f"Generated On: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"), ln=True, align="C")
 
-    pdf.ln(10)
+    pdf.ln(8)
 
-    # SUMMARY
+    # ================= SUMMARY =================
     total = dataframe["Amount"].sum() if not dataframe.empty else 0
     transactions = len(dataframe)
     remaining = budget - total
 
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 8, "Account Summary", ln=True)
+    pdf.cell(0, 8, "ACCOUNT SUMMARY", ln=True)
 
     pdf.set_font("Arial", "", 11)
-    pdf.cell(0, 6, clean(f"Total Transactions: {transactions}"), ln=True)
-    pdf.cell(0, 6, clean(f"Total Spent: INR {total}"), ln=True)
-    pdf.cell(0, 6, clean(f"Budget Limit: INR {budget}"), ln=True)
-    pdf.cell(0, 6, clean(f"Remaining Balance: INR {remaining}"), ln=True)
+    pdf.cell(0, 7, clean(f"Total Transactions: {transactions}"), ln=True)
+    pdf.cell(0, 7, clean(f"Total Debit: INR {total:.2f}"), ln=True)
+    pdf.cell(0, 7, clean(f"Budget Limit: INR {budget:.2f}"), ln=True)
+    pdf.cell(0, 7, clean(f"Remaining Balance: INR {remaining:.2f}"), ln=True)
 
     pdf.ln(8)
 
-    # TABLE HEADER
+    # ================= TABLE HEADER =================
     pdf.set_font("Arial", "B", 11)
     pdf.set_fill_color(220, 220, 220)
 
-    pdf.cell(40, 10, "Amount", 1, 0, "C", True)
-    pdf.cell(80, 10, "Category", 1, 0, "C", True)
-    pdf.cell(60, 10, "Date", 1, 1, "C", True)
+    pdf.cell(40, 10, "AMOUNT", 1, 0, "C", True)
+    pdf.cell(80, 10, "CATEGORY", 1, 0, "C", True)
+    pdf.cell(60, 10, "DATE", 1, 1, "C", True)
 
-    # TABLE DATA
+    # ================= TABLE DATA =================
     pdf.set_font("Arial", "", 10)
 
     for _, row in dataframe.iterrows():
-        pdf.cell(40, 8, clean(f"INR {row['Amount']}"), 1, 0, "C")
-        pdf.cell(80, 8, clean(row["Category"]), 1, 0, "C")
+        pdf.cell(40, 8, clean(f"INR {row['Amount']:.2f}"), 1, 0, "C")
+        pdf.cell(80, 8, clean(str(row["Category"])), 1, 0, "C")
         pdf.cell(60, 8, clean(str(row["Date"])), 1, 1, "C")
 
     pdf.ln(5)
 
-    # FOOTER
+    # ================= FOOTER =================
     pdf.set_font("Arial", "I", 9)
-    pdf.cell(0, 10, "System Generated Statement", ln=True, align="C")
+    pdf.cell(0, 10, "This is a system generated bank statement.", ln=True, align="C")
 
-    return pdf.output(dest="S").encode("latin-1")
+    # ================= STREAMLIT SAFE OUTPUT =================
+    output = pdf.output(dest="S")
+
+    if isinstance(output, str):
+        output = output.encode("latin-1")
+
+    return output
 
 
 # ================= MAIN APP =================
@@ -109,7 +115,7 @@ if logged_in:
     selected_category = st.sidebar.selectbox("Choose Category", categories)
     custom_category = st.sidebar.text_input("Or Enter Custom Category")
 
-    category = custom_category.strip() if custom_category.strip() != "" else selected_category
+    category = custom_category.strip() if custom_category.strip() else selected_category
 
     expense_date = st.sidebar.date_input("Date", date.today())
 
@@ -182,7 +188,7 @@ if logged_in:
         for i, row in filtered_df.iterrows():
             c1, c2, c3, c4, c5 = st.columns(5)
 
-            c1.write(f"INR {row['Amount']}")
+            c1.write(f"INR {row['Amount']:.2f}")
             c2.write(row["Category"])
             c3.write(row["Date"])
 
@@ -236,11 +242,11 @@ if logged_in:
     )
 
     # ================= PDF DOWNLOAD =================
-    pdf_file = create_pdf(filtered_df, username=username, budget=budget)
+    pdf_data = create_pdf(filtered_df, username, budget)
 
     st.download_button(
-        "📑 Download Bank Statement PDF",
-        data=pdf_file,
+        label="📄 Download Bank Statement PDF",
+        data=pdf_data,
         file_name="bank_statement.pdf",
         mime="application/pdf"
     )
