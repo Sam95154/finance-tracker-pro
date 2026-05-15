@@ -36,7 +36,7 @@ def create_pdf(dataframe, username="User", budget=0):
 
     # ================= HEADER =================
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "HDFC STYLE BANK STATEMENT", ln=True, align="C")
+    pdf.cell(0, 10, "SSB BANK OF INDIA STATEMENT", ln=True, align="C")
 
     pdf.set_font("Arial", "", 11)
     pdf.cell(0, 8, clean(f"Account Holder: {username}"), ln=True, align="C")
