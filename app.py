@@ -134,10 +134,10 @@ if logged_in:
 
     c1, c2, c3, c4 = st.columns(4)
 
-    c1.metric("💵 Total Expense", f"₹{total}")
+    c1.metric("💵 Total Expense", f"INR{total}")
     c2.metric("📂 Top Category", top_category)
     c3.metric("🧾 Transactions", transactions)
-    c4.metric("💳 Remaining Budget", f"₹{remaining}")
+    c4.metric("💳 Remaining Budget", f"INR{remaining}")
 
     if total > budget:
         st.error("⚠ Budget Exceeded!")
