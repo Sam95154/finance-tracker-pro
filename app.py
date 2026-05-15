@@ -437,9 +437,8 @@ if logged_in:
 
             pdf.ln()
 
-        return pdf.output(
-            dest="S"
-        ).encode("latin-1")
+        pdf_output = pdf.output(dest="S")
+        return pdf_output if isinstance(pdf_output, (bytes, bytearray)) else pdf_output.encode("latin-1")
 
     # CREATE PDF
     pdf_file = create_pdf(
