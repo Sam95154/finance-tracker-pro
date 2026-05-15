@@ -366,7 +366,7 @@ if logged_in:
 
     # PDF FUNCTION
 from fpdf import FPDF
-import io
+
 
 def create_pdf(dataframe):
 
