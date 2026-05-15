@@ -3,11 +3,7 @@ import pandas as pd
 from datetime import date
 from fpdf import FPDF
 
-from database import (
-    load_data,
-    save_data,
-    init_db
-)
+from database import load_data, save_data, init_db
 from analytics import show_charts
 from auth import login
 
@@ -20,434 +16,212 @@ st.set_page_config(
 
 # LOAD CSS
 with open("style.css") as f:
-    st.markdown(
-        f"<style>{f.read()}</style>",
-        unsafe_allow_html=True
-    )
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+# INIT DB
+init_db()
 
 # LOGIN
 logged_in = login()
-init_db()
 
 if logged_in:
 
     st.title("💰 Finance Tracker Pro")
-    st.markdown(
-        "### Smart Expense Management Dashboard"
-    )
+    st.markdown("### Smart Expense Management Dashboard")
 
-    # USERNAME
     username = st.session_state.username
-
-    # LOAD USER DATA
     df = load_data(username)
 
-    # SIDEBAR
+    # ================= SIDEBAR =================
     st.sidebar.header("➕ Add Expense")
 
-    # BUDGET
-    budget = st.sidebar.number_input(
-        "💰 Set Monthly Budget",
-        min_value=0,
-        value=10000
-    )
+    budget = st.sidebar.number_input("💰 Monthly Budget", min_value=0, value=10000)
+    amount = st.sidebar.number_input("Amount", min_value=0)
 
-    # AMOUNT
-    amount = st.sidebar.number_input(
-        "Amount",
-        min_value=0
-    )
-
-    # CATEGORY SUGGESTIONS
     default_categories = [
-        "Food",
-        "Travel",
-        "Shopping",
-        "Bills",
-        "Entertainment",
-        "Medical",
-        "Education",
-        "Fuel",
-        "Gym",
-        "Investment"
+        "Food", "Travel", "Shopping", "Bills",
+        "Entertainment", "Medical", "Education",
+        "Fuel", "Gym", "Investment"
     ]
 
-    selected_category = st.sidebar.selectbox(
-        "Choose Suggested Category",
-        default_categories
-    )
+    selected_category = st.sidebar.selectbox("Choose Category", default_categories)
+    custom_category = st.sidebar.text_input("Or Enter Custom Category")
 
-    custom_category = st.sidebar.text_input(
-        "Or Enter Custom Category"
-    )
+    category = custom_category.strip() if custom_category.strip() != "" else selected_category
 
-    # FINAL CATEGORY
-    category = (
-        custom_category.strip()
-        if custom_category.strip() != ""
-        else selected_category
-    )
+    expense_date = st.sidebar.date_input("Date", date.today())
 
-    st.sidebar.caption(
-        "💡 You can type your own category"
-    )
-
-    # DATE
-    expense_date = st.sidebar.date_input(
-        "Date",
-        date.today()
-    )
-
-    # ADD EXPENSE
     if st.sidebar.button("Add Expense"):
-
         new_data = pd.DataFrame({
             "Amount": [amount],
             "Category": [category],
             "Date": [expense_date]
         })
 
-        df = pd.concat(
-            [df, new_data],
-            ignore_index=True
-        )
-
+        df = pd.concat([df, new_data], ignore_index=True)
         save_data(df, username)
 
-        st.success(
-            "Expense Added Successfully ✅"
-        )
-
+        st.success("Expense Added Successfully ✅")
         st.rerun()
 
-    # METRICS
-    total = (
-        df["Amount"].sum()
-        if not df.empty else 0
-    )
-
+    # ================= METRICS =================
+    total = df["Amount"].sum() if not df.empty else 0
     transactions = len(df)
-
-    remaining_budget = budget - total
+    remaining = budget - total
 
     top_category = (
-        df.groupby("Category")["Amount"]
-        .sum()
-        .idxmax()
+        df.groupby("Category")["Amount"].sum().idxmax()
         if not df.empty else "None"
     )
 
-    # DASHBOARD CARDS
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric(
-        "💵 Total Expense",
-        f"₹{total}"
-    )
+    col1.metric("💵 Total Expense", f"₹{total}")
+    col2.metric("📂 Top Category", top_category)
+    col3.metric("🧾 Transactions", transactions)
+    col4.metric("💳 Remaining Budget", f"₹{remaining}")
 
-    col2.metric(
-        "📂 Top Category",
-        top_category
-    )
-
-    col3.metric(
-        "🧾 Transactions",
-        transactions
-    )
-
-    col4.metric(
-        "💳 Remaining Budget",
-        f"₹{remaining_budget}"
-    )
-
-    # BUDGET ALERTS
     if total > budget:
-
-        st.error(
-            "⚠ You have exceeded your monthly budget!"
-        )
-
+        st.error("⚠ Budget Exceeded!")
     elif total > budget * 0.8:
-
-        st.warning(
-            "⚠ You have used more than 80% of your budget."
-        )
-
+        st.warning("⚠ 80% Budget Used")
     else:
-
-        st.success(
-            "✅ Budget is under control."
-        )
+        st.success("✅ Budget OK")
 
     st.divider()
 
-    # SEARCH & FILTER
-    st.subheader(
-        "🔍 Search & Filter Expenses"
+    # ================= SEARCH FILTER =================
+    st.subheader("🔍 Search & Filter")
+
+    search = st.text_input("Search Category")
+
+    min_amt, max_amt = st.slider(
+        "Amount Range", 0, 100000, (0, 100000)
     )
 
-    search_category = st.text_input(
-        "Search Category"
-    )
+    filter_date = st.date_input("Filter Date", value=None)
 
-    min_amount, max_amount = st.slider(
-        "Filter By Amount Range",
-        0,
-        100000,
-        (0, 100000)
-    )
-
-    filter_date = st.date_input(
-        "Filter By Date",
-        value=None
-    )
-
-    # FILTERED DATA
     filtered_df = df.copy()
 
-    # CATEGORY FILTER
-    if search_category:
-
+    if search:
         filtered_df = filtered_df[
-            filtered_df["Category"]
-            .astype(str)
-            .str.contains(
-                search_category,
-                case=False,
-                na=False
-            )
+            filtered_df["Category"].astype(str).str.contains(search, case=False)
         ]
 
-    # AMOUNT FILTER
     filtered_df = filtered_df[
-        (filtered_df["Amount"] >= min_amount)
-        &
-        (filtered_df["Amount"] <= max_amount)
+        (filtered_df["Amount"] >= min_amt) &
+        (filtered_df["Amount"] <= max_amt)
     ]
 
-    # DATE FILTER
     if filter_date:
-
         filtered_df = filtered_df[
-            filtered_df["Date"].astype(str)
-            ==
-            str(filter_date)
+            filtered_df["Date"].astype(str) == str(filter_date)
         ]
 
     st.divider()
 
-    # EXPENSE TABLE
-    st.subheader("📋 Expense Records")
+    # ================= TABLE =================
+    st.subheader("📋 Expenses")
 
     if not filtered_df.empty:
 
-        for index, row in filtered_df.iterrows():
+        for i, row in filtered_df.iterrows():
+            c1, c2, c3, c4, c5 = st.columns(5)
 
-            col1, col2, col3, col4, col5 = st.columns(5)
+            c1.write(f"₹{row['Amount']}")
+            c2.write(row["Category"])
+            c3.write(row["Date"])
 
-            col1.write(
-                f"₹{row['Amount']}"
-            )
-
-            col2.write(
-                row["Category"]
-            )
-
-            col3.write(
-                row["Date"]
-            )
-
-            # DELETE BUTTON
-            if col4.button(
-                "🗑 Delete",
-                key=f"delete_{index}"
-            ):
-
-                df = df.drop(index)
-
+            if c4.button("🗑 Delete", key=f"del_{i}"):
+                df = df.drop(i)
                 save_data(df, username)
-
                 st.rerun()
 
-            # EDIT BUTTON
-            if col5.button(
-                "✏ Edit",
-                key=f"edit_{index}"
-            ):
-
-                st.session_state.edit_index = index
-
-        # EDIT SECTION
-        if "edit_index" in st.session_state:
-
-            edit_index = st.session_state.edit_index
-
-            st.subheader(
-                "✏ Edit Expense"
-            )
-
-            new_amount = st.number_input(
-                "New Amount",
-                value=int(
-                    df.loc[
-                        edit_index,
-                        "Amount"
-                    ]
-                )
-            )
-
-            new_category = st.text_input(
-                "New Category",
-                value=str(
-                    df.loc[
-                        edit_index,
-                        "Category"
-                    ]
-                )
-            )
-
-            if st.button(
-                "Update Expense"
-            ):
-
-                df.loc[
-                    edit_index,
-                    "Amount"
-                ] = new_amount
-
-                df.loc[
-                    edit_index,
-                    "Category"
-                ] = new_category
-
-                save_data(df, username)
-
-                del st.session_state.edit_index
-
-                st.success(
-                    "Expense Updated Successfully ✅"
-                )
-
-                st.rerun()
+            if c5.button("✏ Edit", key=f"edit_{i}"):
+                st.session_state.edit_index = i
 
     else:
+        st.info("No data found")
 
-        st.info(
-            "No matching expenses found."
+    # ================= EDIT =================
+    if "edit_index" in st.session_state:
+
+        idx = st.session_state.edit_index
+
+        st.subheader("✏ Edit Expense")
+
+        new_amt = st.number_input(
+            "Amount",
+            value=int(df.loc[idx, "Amount"])
         )
+
+        new_cat = st.text_input(
+            "Category",
+            value=str(df.loc[idx, "Category"])
+        )
+
+        if st.button("Update"):
+            df.loc[idx, "Amount"] = new_amt
+            df.loc[idx, "Category"] = new_cat
+
+            save_data(df, username)
+
+            del st.session_state.edit_index
+            st.success("Updated ✅")
+            st.rerun()
 
     st.divider()
 
-    # CHARTS
-    st.subheader(
-        "📊 Expense Analytics"
-    )
-
+    # ================= ANALYTICS =================
+    st.subheader("📊 Analytics")
     show_charts(filtered_df)
 
     st.divider()
 
-    # DOWNLOAD REPORTS
-    st.subheader(
-        "📥 Download Reports"
-    )
-
-    # CSV DOWNLOAD
-    csv = filtered_df.to_csv(
-        index=False
-    )
+    # ================= DOWNLOAD CSV =================
+    csv = filtered_df.to_csv(index=False)
 
     st.download_button(
-        label="📄 Download CSV Report",
-        data=csv,
-        file_name="expense_report.csv",
-        mime="text/csv"
+        "📄 Download CSV",
+        csv,
+        "expense.csv",
+        "text/csv"
     )
 
-    # PDF FUNCTION
+    # ================= FIXED PDF FUNCTION =================
     def create_pdf(dataframe):
 
         pdf = FPDF()
-
         pdf.add_page()
+        pdf.set_font("Arial", size=12)
 
-        pdf.set_font(
-            "Arial",
-            size=12
-        )
-
-        # TITLE
-        pdf.cell(
-            200,
-            10,
-            txt="Finance Tracker Report",
-            ln=True,
-            align="C"
-        )
-
+        pdf.cell(200, 10, "Finance Tracker Report", ln=True, align="C")
         pdf.ln(10)
 
-        # TABLE HEADERS
-        pdf.cell(
-            40,
-            10,
-            "Amount",
-            1
-        )
-
-        pdf.cell(
-            70,
-            10,
-            "Category",
-            1
-        )
-
-        pdf.cell(
-            60,
-            10,
-            "Date",
-            1
-        )
-
+        pdf.cell(40, 10, "Amount", 1)
+        pdf.cell(70, 10, "Category", 1)
+        pdf.cell(60, 10, "Date", 1)
         pdf.ln()
 
-        # TABLE DATA
         for _, row in dataframe.iterrows():
-
-            pdf.cell(
-                40,
-                10,
-                str(row["Amount"]),
-                1
-            )
-
-            pdf.cell(
-                70,
-                10,
-                str(row["Category"]),
-                1
-            )
-
-            pdf.cell(
-                60,
-                10,
-                str(row["Date"]),
-                1
-            )
-
+            pdf.cell(40, 10, str(row["Amount"]), 1)
+            pdf.cell(70, 10, str(row["Category"]), 1)
+            pdf.cell(60, 10, str(row["Date"]), 1)
             pdf.ln()
 
+        # ✅ IMPORTANT FIX (NO ERROR IN STREAMLIT CLOUD)
         pdf_output = pdf.output(dest="S")
-        return pdf_output if isinstance(pdf_output, (bytes, bytearray)) else pdf_output.encode("latin-1")
 
-    # CREATE PDF
-    pdf_file = create_pdf(
-        filtered_df
-    )
+        if isinstance(pdf_output, str):
+            pdf_output = pdf_output.encode("latin-1")
 
-    # PDF DOWNLOAD
+        return pdf_output
+
+    # ================= PDF DOWNLOAD =================
+    pdf_file = create_pdf(filtered_df)
+
     st.download_button(
-        label="📑 Download PDF Report",
+        "📑 Download PDF",
         data=pdf_file,
         file_name="expense_report.pdf",
         mime="application/pdf"
