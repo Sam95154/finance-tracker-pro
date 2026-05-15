@@ -24,6 +24,24 @@ init_db()
 # ================= LOGIN =================
 logged_in = login()
 
+# ================= MAIN APP =================
+if logged_in:
+
+    st.title("💰 Finance Tracker Pro")
+
+    # 🔥 PUT IT HERE (THIS IS THE CORRECT PLACE)
+    username = st.session_state.username
+    df = load_data(username)
+
+    # ================= DEMO MODE OVERRIDE (ADD HERE) =================
+    if st.session_state.get("demo_mode"):
+        st.info("🧪 DEMO MODE ACTIVE")
+
+        df = pd.DataFrame({
+            "Amount": [500, 1200, 300, 800],
+            "Category": ["Food", "Travel", "Shopping", "Bills"],
+            "Date": [date.today(), date.today(), date.today(), date.today()]
+        })
 # ================= SAFE CLEAN FUNCTION =================
 def clean(text):
     return str(text).encode("ascii", "ignore").decode()
