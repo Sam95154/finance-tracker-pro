@@ -365,91 +365,30 @@ if logged_in:
     )
 
     # PDF FUNCTION
-    def create_pdf(dataframe):
+from fpdf import FPDF
+import io
 
-        pdf = FPDF()
+def create_pdf(dataframe):
 
-        pdf.add_page()
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
 
-        pdf.set_font(
-            "Arial",
-            size=12
-        )
+    pdf.cell(200, 10, txt="Finance Tracker Report", ln=True, align="C")
+    pdf.ln(10)
 
-        # TITLE
-        pdf.cell(
-            200,
-            10,
-            txt="Finance Tracker Report",
-            ln=True,
-            align="C"
-        )
+    pdf.cell(40, 10, "Amount", 1)
+    pdf.cell(70, 10, "Category", 1)
+    pdf.cell(60, 10, "Date", 1)
+    pdf.ln()
 
-        pdf.ln(10)
-
-        # TABLE HEADERS
-        pdf.cell(
-            40,
-            10,
-            "Amount",
-            1
-        )
-
-        pdf.cell(
-            70,
-            10,
-            "Category",
-            1
-        )
-
-        pdf.cell(
-            60,
-            10,
-            "Date",
-            1
-        )
-
+    for _, row in dataframe.iterrows():
+        pdf.cell(40, 10, str(row["Amount"]), 1)
+        pdf.cell(70, 10, str(row["Category"]), 1)
+        pdf.cell(60, 10, str(row["Date"]), 1)
         pdf.ln()
 
-        # TABLE DATA
-        for _, row in dataframe.iterrows():
+    # IMPORTANT FIX → convert to bytes
+    pdf_bytes = pdf.output(dest="S").encode("latin-1")
 
-            pdf.cell(
-                40,
-                10,
-                str(row["Amount"]),
-                1
-            )
-
-            pdf.cell(
-                70,
-                10,
-                str(row["Category"]),
-                1
-            )
-
-            pdf.cell(
-                60,
-                10,
-                str(row["Date"]),
-                1
-            )
-
-            pdf.ln()
-
-        return pdf.output(
-            dest="S"
-        ).encode("latin-1")
-
-    # CREATE PDF
-    pdf_file = create_pdf(
-        filtered_df
-    )
-
-    # PDF DOWNLOAD
-    st.download_button(
-        label="📑 Download PDF Report",
-        data=pdf_file,
-        file_name="expense_report.pdf",
-        mime="application/pdf"
-    )
+    return pdf_bytes
