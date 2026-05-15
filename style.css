@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 .main {
     background-color: #0E1117;
     color: white;
@@ -13,20 +12,4 @@
 
 h1, h2, h3 {
     color: #00FFAA;
-=======
-.main {
-    background-color: #0E1117;
-    color: white;
-}
-
-.stMetric {
-    background-color: #262730;
-    padding: 15px;
-    border-radius: 10px;
-    text-align: center;
-}
-
-h1, h2, h3 {
-    color: #00FFAA;
->>>>>>> 27fca6eb953f4474cd6732a9b9ad3b898fcd2c13
 }

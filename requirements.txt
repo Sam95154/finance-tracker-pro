@@ -1,14 +1,4 @@
-<<<<<<< HEAD
 streamlit
 pandas
 plotly
-streamlit-authenticator
-bcrypt
-=======
-streamlit
-pandas
-plotly
-streamlit-authenticator
-bcrypt
->>>>>>> 27fca6eb953f4474cd6732a9b9ad3b898fcd2c13
-fpdf
+fpdf2
