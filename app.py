@@ -244,9 +244,15 @@ if logged_in:
     # ================= PDF DOWNLOAD =================
     pdf_data = create_pdf(filtered_df, username, budget)
 
+    # FORCE STREAMLIT SAFE BYTES
+    if isinstance(pdf_data, str):
+        pdf_data = pdf_data.encode("latin-1")
+
+    pdf_data = bytes(pdf_data)
+
     st.download_button(
-        label="📄 Download Bank Statement PDF",
-        data=pdf_data,
-        file_name="bank_statement.pdf",
-        mime="application/pdf"
+        "📄 Download PDF",
+        pdf_data,
+        "bank_statement.pdf",
+        "application/pdf"
     )
