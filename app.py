@@ -7,24 +7,24 @@ from database import load_data, save_data, init_db
 from analytics import show_charts
 from auth import login
 
-# ======================
+# =========================
 # PAGE CONFIG
-# ======================
+# =========================
 st.set_page_config(
     page_title="Finance Tracker Pro",
     page_icon="💰",
     layout="wide"
 )
 
-# ======================
-# LOAD CSS
-# ======================
+# =========================
+# CSS
+# =========================
 with open("style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# ======================
-# INIT DB + LOGIN
-# ======================
+# =========================
+# INIT + LOGIN
+# =========================
 init_db()
 logged_in = login()
 
@@ -35,32 +35,35 @@ if logged_in:
 
     username = st.session_state.username
 
-    # LOAD USER DATA
+    # =========================
+    # LOAD DATA
+    # =========================
     df = load_data(username)
 
-    # ======================
+    # =========================
     # SIDEBAR INPUT
-    # ======================
+    # =========================
     st.sidebar.header("➕ Add Expense")
 
-    budget = st.sidebar.number_input("💰 Set Monthly Budget", min_value=0, value=10000)
+    budget = st.sidebar.number_input("💰 Monthly Budget", min_value=0, value=10000)
     amount = st.sidebar.number_input("Amount", min_value=0)
 
     categories = [
-        "Food", "Travel", "Shopping", "Bills", "Entertainment",
-        "Medical", "Education", "Fuel", "Gym", "Investment"
+        "Food", "Travel", "Shopping", "Bills",
+        "Entertainment", "Medical", "Education",
+        "Fuel", "Gym", "Investment"
     ]
 
-    selected_category = st.sidebar.selectbox("Choose Category", categories)
-    custom_category = st.sidebar.text_input("Or Enter Custom Category")
+    selected_category = st.sidebar.selectbox("Category", categories)
+    custom_category = st.sidebar.text_input("Custom Category")
 
-    category = custom_category.strip() if custom_category.strip() != "" else selected_category
+    category = custom_category.strip() if custom_category.strip() else selected_category
 
     expense_date = st.sidebar.date_input("Date", date.today())
 
-    # ======================
+    # =========================
     # ADD EXPENSE
-    # ======================
+    # =========================
     if st.sidebar.button("Add Expense"):
 
         new_data = pd.DataFrame({
@@ -75,9 +78,9 @@ if logged_in:
         st.success("Expense Added Successfully ✅")
         st.rerun()
 
-    # ======================
+    # =========================
     # METRICS
-    # ======================
+    # =========================
     total = df["Amount"].sum() if not df.empty else 0
     transactions = len(df)
     remaining_budget = budget - total
@@ -94,9 +97,9 @@ if logged_in:
     col3.metric("🧾 Transactions", transactions)
     col4.metric("💳 Remaining Budget", f"₹{remaining_budget}")
 
-    # ======================
-    # BUDGET ALERTS
-    # ======================
+    # =========================
+    # ALERTS
+    # =========================
     if total > budget:
         st.error("⚠ Budget Exceeded!")
     elif total > budget * 0.8:
@@ -106,9 +109,9 @@ if logged_in:
 
     st.divider()
 
-    # ======================
-    # SEARCH + FILTER
-    # ======================
+    # =========================
+    # FILTER SECTION
+    # =========================
     st.subheader("🔍 Search & Filter")
 
     search_category = st.text_input("Search Category")
@@ -140,26 +143,26 @@ if logged_in:
 
     st.divider()
 
-    # ======================
+    # =========================
     # TABLE
-    # ======================
+    # =========================
     st.subheader("📋 Expense Records")
 
     if not filtered_df.empty:
 
         for index, row in filtered_df.iterrows():
-            col1, col2, col3, col4, col5 = st.columns(5)
+            c1, c2, c3, c4, c5 = st.columns(5)
 
-            col1.write(f"₹{row['Amount']}")
-            col2.write(row["Category"])
-            col3.write(row["Date"])
+            c1.write(f"₹{row['Amount']}")
+            c2.write(row["Category"])
+            c3.write(row["Date"])
 
-            if col4.button("🗑 Delete", key=f"del_{index}"):
+            if c4.button("🗑 Delete", key=f"del_{index}"):
                 df = df.drop(index)
                 save_data(df, username)
                 st.rerun()
 
-            if col5.button("✏ Edit", key=f"edit_{index}"):
+            if c5.button("✏ Edit", key=f"edit_{index}"):
                 st.session_state.edit_index = index
 
         # EDIT
@@ -184,6 +187,7 @@ if logged_in:
                 df.loc[i, "Category"] = new_category
 
                 save_data(df, username)
+
                 del st.session_state.edit_index
 
                 st.success("Updated Successfully")
@@ -194,17 +198,31 @@ if logged_in:
 
     st.divider()
 
-    # ======================
+    # =========================
     # CHARTS
-    # ======================
+    # =========================
     st.subheader("📊 Analytics")
     show_charts(filtered_df)
 
     st.divider()
 
-    # ======================
-    # PDF FUNCTION (FIXED)
-    # ======================
+    # =========================
+    # DOWNLOAD SECTION
+    # =========================
+    st.subheader("📥 Download Reports")
+
+    csv = filtered_df.to_csv(index=False)
+
+    st.download_button(
+        "📄 Download CSV",
+        csv,
+        "expense_report.csv",
+        "text/csv"
+    )
+
+    # =========================
+    # FIXED PDF FUNCTION
+    # =========================
     def create_pdf(dataframe):
 
         pdf = FPDF()
@@ -225,21 +243,9 @@ if logged_in:
             pdf.cell(60, 10, str(row["Date"]), 1)
             pdf.ln()
 
-        return pdf.output(dest="S").encode("latin-1")
-
-    # ======================
-    # DOWNLOAD SECTION
-    # ======================
-    st.subheader("📥 Download Reports")
-
-    csv = filtered_df.to_csv(index=False)
-
-    st.download_button(
-        "📄 Download CSV",
-        csv,
-        "expense_report.csv",
-        "text/csv"
-    )
+        # SAFE OUTPUT (NO ENCODING ERROR)
+        pdf_output = pdf.output(dest="S")
+        return pdf_output if isinstance(pdf_output, bytes) else pdf_output.encode("latin-1")
 
     pdf_file = create_pdf(filtered_df)
 
