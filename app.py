@@ -189,40 +189,71 @@ if logged_in:
     )
 
     # ================= FIXED PDF FUNCTION =================
-    def create_pdf(dataframe):
+    from fpdf import FPDF
+from datetime import datetime
 
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
+def create_pdf(dataframe, username="User", budget=0):
 
-        pdf.cell(200, 10, "Finance Tracker Report", ln=True, align="C")
-        pdf.ln(10)
+    pdf = FPDF()
+    pdf.add_page()
 
-        pdf.cell(40, 10, "Amount", 1)
-        pdf.cell(70, 10, "Category", 1)
-        pdf.cell(60, 10, "Date", 1)
-        pdf.ln()
+    # ================= HEADER =================
+    pdf.set_font("Arial", "B", 18)
+    pdf.cell(0, 10, "BANK STATEMENT REPORT", ln=True, align="C")
 
-        for _, row in dataframe.iterrows():
-            pdf.cell(40, 10, str(row["Amount"]), 1)
-            pdf.cell(70, 10, str(row["Category"]), 1)
-            pdf.cell(60, 10, str(row["Date"]), 1)
-            pdf.ln()
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 8, f"Account Holder: {username}", ln=True, align="C")
+    pdf.cell(0, 8, f"Generated On: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}", ln=True, align="C")
 
-        # ✅ IMPORTANT FIX (NO ERROR IN STREAMLIT CLOUD)
-        pdf_output = pdf.output(dest="S")
+    pdf.ln(10)
 
-        if isinstance(pdf_output, str):
-            pdf_output = pdf_output.encode("latin-1")
+    # ================= SUMMARY BOX =================
+    total = dataframe["Amount"].sum() if not dataframe.empty else 0
+    transactions = len(dataframe)
+    remaining = budget - total
 
-        return pdf_output
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 8, "Account Summary", ln=True)
 
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 6, f"Total Transactions: {transactions}", ln=True)
+    pdf.cell(0, 6, f"Total Spent: ₹{total}", ln=True)
+    pdf.cell(0, 6, f"Budget Limit: ₹{budget}", ln=True)
+    pdf.cell(0, 6, f"Remaining Balance: ₹{remaining}", ln=True)
+
+    pdf.ln(8)
+
+    # ================= TABLE HEADER =================
+    pdf.set_font("Arial", "B", 11)
+    pdf.set_fill_color(230, 230, 230)
+
+    pdf.cell(40, 10, "Amount", 1, 0, "C", True)
+    pdf.cell(80, 10, "Category", 1, 0, "C", True)
+    pdf.cell(60, 10, "Date", 1, 1, "C", True)
+
+    # ================= TABLE DATA =================
+    pdf.set_font("Arial", "", 10)
+
+    for _, row in dataframe.iterrows():
+        pdf.cell(40, 8, f"₹{row['Amount']}", 1, 0, "C")
+        pdf.cell(80, 8, str(row["Category"]), 1, 0, "C")
+        pdf.cell(60, 8, str(row["Date"]), 1, 1, "C")
+
+    pdf.ln(5)
+
+    # ================= FOOTER =================
+    pdf.set_font("Arial", "I", 9)
+    pdf.cell(0, 10, "This is a system-generated statement and does not require a signature.", ln=True, align="C")
+
+    # ================= OUTPUT =================
+    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+    return pdf_bytes
     # ================= PDF DOWNLOAD =================
-    pdf_file = create_pdf(filtered_df)
+    pdf_file = create_pdf(filtered_df, username=username, budget=budget)
 
-    st.download_button(
-        "📑 Download PDF",
-        data=pdf_file,
-        file_name="expense_report.pdf",
-        mime="application/pdf"
-    )
+st.download_button(
+    "📑 Download Bank Statement PDF",
+    data=pdf_file,
+    file_name="bank_statement.pdf",
+    mime="application/pdf"
+)
