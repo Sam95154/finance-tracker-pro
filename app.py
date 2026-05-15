@@ -181,7 +181,7 @@ if logged_in:
         for i, row in filtered_df.iterrows():
             c1, c2, c3, c4, c5 = st.columns(5)
 
-            c1.write(f"₹{row['Amount']}")
+            c1.write(f"INR{row['Amount']}")
             c2.write(row["Category"])
             c3.write(row["Date"])
 
@@ -228,7 +228,7 @@ if logged_in:
     csv = filtered_df.to_csv(index=False)
 
     st.download_button(
-        "📄 Download CSV",
+        " Download CSV",
         csv,
         "expense.csv",
         "text/csv"
@@ -238,7 +238,7 @@ if logged_in:
     pdf_file = create_pdf(filtered_df, username=username, budget=budget)
 
     st.download_button(
-        "📑 Download Bank Statement PDF",
+        " Download Bank Statement PDF",
         data=pdf_file,
         file_name="bank_statement.pdf",
         mime="application/pdf"
